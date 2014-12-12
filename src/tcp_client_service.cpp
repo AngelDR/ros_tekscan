@@ -147,84 +147,33 @@ string tcp_client::receive(int size=512)
     return reply;
 }
 
- 
-int main(int argc , char *argv[])
+
+tcp_client c;
+
+bool pressure_service(tekscan_client::GetPressureMap::Request &req, tekscan_client::GetPressureMap::Response &res)
 {
-    /**
-     * Definir nodo publisher
-     * 
-     */
   
-    ros::init(argc, argv, "pressure_map_publisher");
-    ros::NodeHandle n;
-    ros::Publisher pressure_pub = n.advertise<tekscan_client::fingertips_calib_data>("pressure_map",1000);
-    ros::Rate loop_rate(10);
-    
-    tcp_client c;
-    string host;
-    string opc;
-    std::vector<int> ftips_values(80);
-    std::vector<float> ftips_calib_values(80);
-    std::vector<float> finger_total_pressure(5);
-    std::vector<float> finger_forces(5); 
-    int value, pos;
-    tekscan_client::fingertips_calib_data pressure_msg;
-    
-    //cout<<"Enter hostname : ";
-    //cin>>host;
-    host = "172.18.34.88";
-    //connect to host
-    c.conn(host , 13000);
-    
-    //send some data
-    cout<<"Escribe RAW / CAL (obtener solo finger tips)  \n  EXIT : \n \n";
-    cin>>opc;
-    //if(opc=="EXIT") exit = true;
-    //else
-    //{
-    if((opc=="RAW") || (opc=="raw")) opc="TIPSRAWDATA";
-    else if((opc =="CAL") || (opc=="cal")) opc = "TIPSCALDATA";
-    
-    
-     
-    while(ros::ok()){
-      c.send_data(opc);
+      std::vector<int> ftips_values(80);
+      std::vector<float> ftips_calib_values(80);
+      std::vector<float> finger_total_pressure(5);
+      std::vector<float> finger_forces(5); 
+      int value, pos;
+      c.send_data("TIPSCALDATA");
       //receive and echo reply
       //cout<<"----------------------------\n\n";
-      string res = c.receive(1024);
+      string response = c.receive(1024);
       // formatear respuesta
-      std::replace( res.begin(), res.end(), ',', '.'); // replace all ',' to '.'
+      std::replace( response.begin(), response.end(), ',', '.'); // replace all ',' to '.'
     
       // Convertir a array int[] o float[]
       char_separator<char> sep(" ");
-      tokenizer<char_separator<char> > tokens(res, sep);
+      tokenizer<char_separator<char> > tokens(response, sep);
       pos=0;
       int aux_pos = 0; 
       int map_pos = 0;
       
       
-      
-      if(opc == "TIPSRAWDATA"){
-	BOOST_FOREACH (const string& t, tokens) {
-	  ftips_values.at(pos) = atoi(t.c_str());
-	  
-	  // mostrar por pantallla
-	  if( pos == 0) printf("Thumb: \n");
-	  else if (pos == 16) printf("First finger: \n");
-	  else if (pos == 32) printf("Middle finger: \n");
-	  else if (pos == 48) printf("Ring finger: \n");
-	  else if (pos == 64) printf("Little finger: \n");
-	  
-	  printf("%d       ", ftips_values.at(pos));
-	  pos+=1;
-	  aux_pos+=1;
-	  if (aux_pos == 4){ printf("\n \n"); aux_pos=0;}
-	}
-      }
-      
-      
-      if(opc == "TIPSCALDATA"){
-	BOOST_FOREACH (const string& t, tokens) {
+      BOOST_FOREACH (const string& t, tokens) {
 	  if(pos<=79){
 	    ftips_calib_values.at(pos) = atof (t.c_str());
 	    // mostrar por pantalla
@@ -235,11 +184,11 @@ int main(int argc , char *argv[])
 	    else if (pos == 64) printf("Little finger: \n");
 	    printf("%f       ",ftips_calib_values.at(pos));
 	  	  
-	    if( pos <= 15) pressure_msg.th_values[map_pos] = ftips_calib_values.at(pos);
-	    else if (pos <= 31) pressure_msg.ff_values[map_pos] = ftips_calib_values.at(pos);
-	    else if (pos <= 47) pressure_msg.mf_values[map_pos] = ftips_calib_values.at(pos);
-	    else if (pos <= 63) pressure_msg.rf_values[map_pos] = ftips_calib_values.at(pos);
-	    else if (pos <= 79) pressure_msg.lf_values[map_pos] = ftips_calib_values.at(pos);
+	    if( pos <= 15) res.th_values[map_pos] = ftips_calib_values.at(pos);
+	    else if (pos <= 31) res.ff_values[map_pos] = ftips_calib_values.at(pos);
+	    else if (pos <= 47) res.mf_values[map_pos] = ftips_calib_values.at(pos);
+	    else if (pos <= 63) res.rf_values[map_pos] = ftips_calib_values.at(pos);
+	    else if (pos <= 79) res.lf_values[map_pos] = ftips_calib_values.at(pos);
 	  
 	    aux_pos+=1;	  
 	    map_pos+=1;
@@ -262,73 +211,85 @@ int main(int argc , char *argv[])
 	  if (finger == 0){
 	    float th_pressure_sum = 0;
 	    for(int pos=0; pos<16; pos++)
-	      th_pressure_sum += pressure_msg.th_values[pos];
+	      th_pressure_sum += res.th_values[pos];
 	      
 	    force = superficie * (th_pressure_sum / 16);
 	    // actualizar mensaje /pressure_map
-	    pressure_msg.applied_force[0] = force;
-	    pressure_msg.total_pressure[0] = th_pressure_sum;	
+	    res.applied_force[0] = force;
+	    res.total_pressure[0] = th_pressure_sum;	
 	   }
 	   
 	  if (finger == 1){
 	    float ff_pressure_sum = 0;
 	    for(int pos=0; pos<16; pos++)
-	      ff_pressure_sum += pressure_msg.ff_values[pos];
+	      ff_pressure_sum += res.ff_values[pos];
 	    force = superficie * (ff_pressure_sum / 16);
 	    
 	    // actualizar mensaje /pressure_map
-	    pressure_msg.applied_force[1] = force;
-	    pressure_msg.total_pressure[1] = ff_pressure_sum;	
+	    res.applied_force[1] = force;
+	    res.total_pressure[1] = ff_pressure_sum;	
 	   }
 	   
 	   if (finger == 2){
 	    float mf_pressure_sum = 0;
 	    for(int pos=0; pos<16; pos++)
-	      mf_pressure_sum += pressure_msg.mf_values[pos];
+	      mf_pressure_sum += res.mf_values[pos];
 	
 	    force = superficie * (mf_pressure_sum / 16);
 	    // actualizar mensaje /pressure_map
-	    pressure_msg.applied_force[2] = force;
-	    pressure_msg.total_pressure[2] = mf_pressure_sum;	
+	    res.applied_force[2] = force;
+	    res.total_pressure[2] = mf_pressure_sum;	
 	   }
 	   
 	   
 	  if (finger == 3){
 	    float rf_pressure_sum = 0;
 	    for(int pos=0; pos<16; pos++)
-	      rf_pressure_sum += pressure_msg.rf_values[pos];
+	      rf_pressure_sum += res.rf_values[pos];
 	    force = superficie * (rf_pressure_sum /16);
 	    // actualizar mensaje /pressure_map
-	    pressure_msg.applied_force[3] = force;
-	    pressure_msg.total_pressure[3] = rf_pressure_sum;	
+	    res.applied_force[3] = force;
+	    res.total_pressure[3] = rf_pressure_sum;	
 	   }
 	   
 	  if (finger == 4){
 	    float lf_pressure_sum = 0;
 	    for(int pos=0; pos<16; pos++)
-	      lf_pressure_sum += pressure_msg.lf_values[pos];
+	      lf_pressure_sum += res.lf_values[pos];
 	    force = superficie * (lf_pressure_sum / 16);
 	    
 	    // actualizar mensaje /pressure_map
-	    pressure_msg.applied_force[4] = force;
-	    pressure_msg.total_pressure[4] = lf_pressure_sum;	
+	    res.applied_force[4] = force;
+	    res.total_pressure[4] = lf_pressure_sum;	
 	   }
 	   
 	   
 	 }
 	 
-      //pressure_msg.applied_force = finger_forces;
-      //pressure_msg.total_pressure = finger_total_pressure;
-	
-	
-      }
-      printf("\n \n \n");
-      pressure_pub.publish(pressure_msg);
-      printf("Publicado /pressure_map \n");
-      ros::spinOnce();
-      loop_rate.sleep();
-    }
-     
-    //done
+}
+
+
+
+ 
+int main(int argc , char *argv[])
+{
+    /**
+     * Definir nodo publisher
+     * 
+     */
+  
+    ros::init(argc, argv, "pressure_map_publisher");
+    ros::NodeHandle n;
+    ros::Publisher pressure_pub = n.advertise<tekscan_client::fingertips_calib_data>("pressure_map",1000);
+    ros::ServiceServer service = n.advertiseService("GetPressureMap", pressure_service);
+    
+    // Conexion a servidor tekscan server
+    string host;
+    string opc;
+    host = "172.18.34.88";
+    //connect to host
+    c.conn(host , 13000);
+    
+    ros::spin();
     return 0;
 }

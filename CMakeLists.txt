@@ -4,7 +4,12 @@ project(tekscan_client)
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
-find_package(catkin REQUIRED)
+find_package(catkin REQUIRED COMPONENTS
+  roscpp
+  rospy
+  std_msgs
+  message_generation
+)
 
 ## System dependencies are found with CMake's conventions
 # find_package(Boost REQUIRED COMPONENTS system)
@@ -40,18 +45,18 @@ find_package(catkin REQUIRED)
 ##   * add every package in MSG_DEP_SET to generate_messages(DEPENDENCIES ...)
 
 ## Generate messages in the 'msg' folder
-# add_message_files(
-#   FILES
-#   Message1.msg
+add_message_files(
+    FILES
+    fingertips_calib_data.msg
 #   Message2.msg
-# )
+)
 
 ## Generate services in the 'srv' folder
-# add_service_files(
-#   FILES
-#   Service1.srv
+add_service_files(
+   FILES
+   GetPressureMap.srv
 #   Service2.srv
-# )
+ )
 
 ## Generate actions in the 'action' folder
 # add_action_files(
@@ -61,10 +66,10 @@ find_package(catkin REQUIRED)
 # )
 
 ## Generate added messages and services with any dependencies listed here
-# generate_messages(
-#   DEPENDENCIES
-#   std_msgs  # Or other packages containing msgs
-# )
+generate_messages(
+  DEPENDENCIES
+  std_msgs  # Or other packages containing msgs
+)
 
 ###################################
 ## catkin specific configuration ##
@@ -78,7 +83,7 @@ find_package(catkin REQUIRED)
 catkin_package(
 #  INCLUDE_DIRS include
 #  LIBRARIES tekscan_client
-#  CATKIN_DEPENDS other_catkin_pkg
+#   CATKIN_DEPENDS message_runtime
 #  DEPENDS system_lib
 )
 
@@ -98,15 +103,20 @@ include_directories(SYSTEM ${Boost_INCLUDE_DIR} ${EIGEN_INCLUDE_DIRS})
 include_directories(${catkin_INCLUDE_DIRS})
 link_directories(${catkin_LIBRARY_DIRS})
 
+
 ## Declare a cpp executable
 add_executable(tekscan_client_node src/tcp_client.cpp)
+add_executable(tekscan_client_service src/tcp_client_service.cpp)
+
 
 ## Add cmake target dependencies of the executable/library
 ## as an example, message headers may need to be generated before nodes
-# add_dependencies(tekscan_client_node tekscan_client_generate_messages_cpp)
+#add_dependencies(tekscan_client_node tekscan_client_generate_messages_cpp)
 
 ## Specify libraries to link a library or executable target against
 # target_link_libraries(tekscan_client_node
+target_link_libraries(tekscan_client_node ${catkin_LIBRARIES} ${Boost_LIBRARIES})
+target_link_libraries(tekscan_client_service ${catkin_LIBRARIES} ${Boost_LIBRARIES})
 #   ${catkin_LIBRARIES}
 # )
 
@@ -146,6 +156,8 @@ add_executable(tekscan_client_node src/tcp_client.cpp)
 # )
 
 install(TARGETS tekscan_client_node DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION})
+install(TARGETS tekscan_client_service DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION})
+
 
 #############
 ## Testing ##
