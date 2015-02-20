@@ -278,7 +278,7 @@ int main(int argc , char *argv[])
      * 
      */
   
-    ros::init(argc, argv, "pressure_map_publisher");
+    ros::init(argc, argv, "pressure_map_service");
     ros::NodeHandle n;
     ros::Publisher pressure_pub = n.advertise<tekscan_client::fingertips_calib_data>("pressure_map",1000);
     ros::ServiceServer service = n.advertiseService("GetPressureMap", pressure_service);
