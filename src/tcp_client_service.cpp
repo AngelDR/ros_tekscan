@@ -13,6 +13,7 @@
 #include "ros/ros.h"
 #include "tekscan_client/fingertips_calib_data.h"
 #include "tekscan_client/GetPressureMap.h"
+#include <math.h>
 
 
 using namespace std;
@@ -156,8 +157,11 @@ bool pressure_service(tekscan_client::GetPressureMap::Request &req, tekscan_clie
       std::vector<int> ftips_values(80);
       std::vector<float> ftips_calib_values(80);
       std::vector<float> finger_total_pressure(5);
-      std::vector<float> finger_forces(5); 
+      std::vector<float> finger_forces(5);
+      std::vector<float> fi_(16);
+      std::vector<float> forces_deviation(5);
       int value, pos;
+      float sum_deviation;
       c.send_data("TIPSCALDATA");
       //receive and echo reply
       //cout<<"----------------------------\n\n";
@@ -206,61 +210,125 @@ bool pressure_service(tekscan_client::GetPressureMap::Request &req, tekscan_clie
 	float superficie = 2.56; // cm cuadrados 1.6 x 1.6
 	//float superficie = 2.89; // cm cuadrados 1.7 x 1.7
 	float force = 0.0;
+	
+	
+	// Thumb
 	for(int finger=0; finger<5; finger++){
 	  
 	  if (finger == 0){
 	    float th_pressure_sum = 0;
-	    for(int pos=0; pos<16; pos++)
+	    for(int pos=0; pos<16; pos++){
 	      th_pressure_sum += res.th_values[pos];
-	      
-	    force = superficie * (th_pressure_sum / 16);
+	      fi_[pos] = res.th_values[pos] * (2.56 / 16);  // F = p*s ; s = Superficie_total / num_celdas
+	      force += fi_[pos];
+	    }
+	    //force = superficie * (th_pressure_sum / 16);
 	    // actualizar mensaje /pressure_map
 	    res.applied_force[0] = force;
 	    res.total_pressure[0] = th_pressure_sum;	
-	   }
+	    
+	    // calcular desviación tipica
+	    sum_deviation = 0;
+	    for(int pos=0; pos<16; pos++){
+	      sum_deviation += pow( (fi_[pos] - (force/16)),2);
+	    }
+	    res.force_deviation[0] = (float) sqrt(sum_deviation/15);
+	  }
 	   
+	  // First finger 
 	  if (finger == 1){
 	    float ff_pressure_sum = 0;
-	    for(int pos=0; pos<16; pos++)
+	    force = 0;
+	    for(int pos=0; pos<16; pos++){
 	      ff_pressure_sum += res.ff_values[pos];
-	    force = superficie * (ff_pressure_sum / 16);
+	      fi_[pos] = res.ff_values[pos] * (2.56 / 16);  // F = p*s ; s = Superficie_total / num_celdas
+	      force += fi_[pos];
+	    }
+	    //force = superficie * (ff_pressure_sum / 16);
 	    
 	    // actualizar mensaje /pressure_map
 	    res.applied_force[1] = force;
 	    res.total_pressure[1] = ff_pressure_sum;	
+	    
+	    // calcular desviación tipica
+	    sum_deviation = 0;
+	    for(int pos=0; pos<16; pos++){
+	      sum_deviation += pow( (fi_[pos] - (force/16)),2);
+	    }
+	    res.force_deviation[1] = (float) sqrt(sum_deviation/15);
+
 	   }
 	   
+	   // middle finger
 	   if (finger == 2){
 	    float mf_pressure_sum = 0;
-	    for(int pos=0; pos<16; pos++)
+	    force = 0;
+	    for(int pos=0; pos<16; pos++){
 	      mf_pressure_sum += res.mf_values[pos];
-	
-	    force = superficie * (mf_pressure_sum / 16);
+	      fi_[pos] = res.mf_values[pos] * (2.56 / 16);  // F = p*s ; s = Superficie_total / num_celdas
+	      force += fi_[pos];
+	    }
+	   
+	    //force = superficie * (mf_pressure_sum / 16);
 	    // actualizar mensaje /pressure_map
 	    res.applied_force[2] = force;
-	    res.total_pressure[2] = mf_pressure_sum;	
+	    res.total_pressure[2] = mf_pressure_sum;
+	    
+	    // calcular desviación tipica
+	    sum_deviation = 0;
+	    for(int pos=0; pos<16; pos++){
+	      sum_deviation += pow( (fi_[pos] - (force/16)),2);
+	    }
+	    res.force_deviation[2] = (float) sqrt(sum_deviation/15);
+
 	   }
 	   
 	   
+	  // ring finger 
 	  if (finger == 3){
 	    float rf_pressure_sum = 0;
-	    for(int pos=0; pos<16; pos++)
+	    force = 0;
+	    for(int pos=0; pos<16; pos++){
 	      rf_pressure_sum += res.rf_values[pos];
-	    force = superficie * (rf_pressure_sum /16);
+	      fi_[pos] = res.rf_values[pos] * (2.56 / 16);  // F = p*s ; s = Superficie_total / num_celdas
+	      force += fi_[pos];
+	    }
+	    //force = superficie * (rf_pressure_sum /16);
 	    // actualizar mensaje /pressure_map
 	    res.applied_force[3] = force;
 	    res.total_pressure[3] = rf_pressure_sum;	
+	    
+	    // calcular desviación tipica
+	    sum_deviation = 0;
+	    for(int pos=0; pos<16; pos++){
+	      sum_deviation += pow( (fi_[pos] - (force/16)),2);
+	    }
+	    res.force_deviation[3] = (float) sqrt(sum_deviation/15);
+
 	   }
 	   
+	  // little finger 
 	  if (finger == 4){
 	    float lf_pressure_sum = 0;
-	    for(int pos=0; pos<16; pos++)
+	    force = 0;
+	    for(int pos=0; pos<16; pos++){
 	      lf_pressure_sum += res.lf_values[pos];
-	    force = superficie * (lf_pressure_sum / 16);
+	      fi_[pos] = res.lf_values[pos] * (2.56 / 16);  // F = p*s ; s = Superficie_total / num_celdas
+	      force += fi_[pos];
+	    }
+	    //force = superficie * (lf_pressure_sum / 16);
 	    
 	    // actualizar mensaje /pressure_map
 	    res.applied_force[4] = force;
 	    res.total_pressure[4] = lf_pressure_sum;	
+	    
+	    // calcular desviación tipica
+	    sum_deviation = 0;
+	    for(int pos=0; pos<16; pos++){
+	      sum_deviation += pow( (fi_[pos] - (force/16)),2);
+	    }
+	    res.force_deviation[4] = (float) sqrt(sum_deviation/15);
+
 	   }
 	   
 	   
