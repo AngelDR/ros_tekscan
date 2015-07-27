@@ -354,7 +354,7 @@ int main(int argc , char *argv[])
     // Conexion a servidor tekscan server
     string host;
     string opc;
-    host = "172.18.34.88";
+    host = "172.18.34.134";
     //connect to host
     c.conn(host , 13000);
     
