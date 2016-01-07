@@ -219,7 +219,7 @@ bool pressure_service(tekscan_client::GetPressureMap::Request &req, tekscan_clie
 	    float th_pressure_sum = 0;
 	    for(int pos=0; pos<16; pos++){
 	      th_pressure_sum += res.th_values[pos];
-	      fi_[pos] = res.th_values[pos] * (2.56 / 16);  // F = p*s ; s = Superficie_total / num_celdas
+	      fi_[pos] = res.th_values[pos] * (2.56 / 16);  // F (N) = p (N*cm2)*s (cm2) ; s = Superficie_total / num_celdas
 	      force += fi_[pos];
 	    }
 	    //force = superficie * (th_pressure_sum / 16);
